@@ -19,6 +19,7 @@ let package = Package(
     products: [
         .library(name: "OrchardDomain", targets: ["OrchardDomain"]),
         .library(name: "OrchardRuntime", targets: ["OrchardRuntime"]),
+        .library(name: "OrchardApplication", targets: ["OrchardApplication"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/container.git", exact: "1.4.1"),
@@ -27,6 +28,8 @@ let package = Package(
     ],
     targets: [
         .target(name: "OrchardDomain"),
+        .target(name: "OrchardApplication", dependencies: ["OrchardDomain"]),
+        .testTarget(name: "OrchardApplicationTests", dependencies: ["OrchardDomain", "OrchardApplication"]),
         .target(name: "OrchardRuntime", dependencies: runtimeDependencies),
         .testTarget(name: "OrchardDomainTests", dependencies: ["OrchardDomain"]),
         .testTarget(name: "OrchardRuntimeTests", dependencies: runtimeDependencies + ["OrchardRuntime"]),

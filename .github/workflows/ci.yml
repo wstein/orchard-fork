@@ -33,6 +33,9 @@ jobs:
           key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
           restore-keys: ${{ runner.os }}-spm-
 
+      - name: Test shared Swift packages
+        run: swift test --package-path Packages/OrchardCore --scratch-path .spm-cache/core-build
+
       - name: Run tests
         run: |
           xcodebuild test \

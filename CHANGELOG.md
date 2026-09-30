@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Shared `OrchardDomain` and `OrchardRuntime` Swift modules used by the native GUI, with independently runnable domain/mapping tests and public models, protocols, and live adapters for the standalone service.
+- Shared `OrchardDomain`, `OrchardRuntime`, and `OrchardApplication` Swift modules used by the native GUI, with independently runnable tests and shared container retry/recovery logic for the standalone service.
 
 ## [2.4.3] - 2026-09-21
 

@@ -11,13 +11,9 @@
 		C0FFEE0000000000000000B2 /* ComposeModel in Frameworks */ = {isa = PBXBuildFile; productRef = C0FFEE0000000000000000A2 /* ComposeModel */; };
 		C0FFEE0000000000000000B3 /* ComposeParser in Frameworks */ = {isa = PBXBuildFile; productRef = C0FFEE0000000000000000A3 /* ComposeParser */; };
 		C0FFEE0000000000000000B4 /* ComposePlanner in Frameworks */ = {isa = PBXBuildFile; productRef = C0FFEE0000000000000000A4 /* ComposePlanner */; };
-		C201AD5B2F86944400E6D0B2 /* ContainerAPIClient in Frameworks */ = {isa = PBXBuildFile; productRef = C201AD5A2F86944400E6D0B2 /* ContainerAPIClient */; };
-		C201AD5C2F86944400E6D0B2 /* MachineAPIClient in Frameworks */ = {isa = PBXBuildFile; productRef = C201AD5D2F86944400E6D0B2 /* MachineAPIClient */; };
-		C201AD5E2F86944400E6D0B2 /* TerminalProgress in Frameworks */ = {isa = PBXBuildFile; productRef = C201AD5F2F86944400E6D0B2 /* TerminalProgress */; };
 		D0A100000000000000000003 /* OrchardDomain in Frameworks */ = {isa = PBXBuildFile; productRef = D0A100000000000000000002 /* OrchardDomain */; };
-		D0A100000000000000000005 /* OrchardDomain in Frameworks */ = {isa = PBXBuildFile; productRef = D0A100000000000000000004 /* OrchardDomain */; };
 		D0A200000000000000000003 /* OrchardRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = D0A200000000000000000002 /* OrchardRuntime */; };
-		D0A200000000000000000005 /* OrchardRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = D0A200000000000000000004 /* OrchardRuntime */; };
+		D0A300000000000000000003 /* OrchardApplication in Frameworks */ = {isa = PBXBuildFile; productRef = D0A300000000000000000002 /* OrchardApplication */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,11 +62,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D0A300000000000000000003 /* OrchardApplication in Frameworks */,
 				D0A200000000000000000003 /* OrchardRuntime in Frameworks */,
 				D0A100000000000000000003 /* OrchardDomain in Frameworks */,
-				C201AD5B2F86944400E6D0B2 /* ContainerAPIClient in Frameworks */,
-				C201AD5C2F86944400E6D0B2 /* MachineAPIClient in Frameworks */,
-				C201AD5E2F86944400E6D0B2 /* TerminalProgress in Frameworks */,
 				C0FFEE0000000000000000B2 /* ComposeModel in Frameworks */,
 				C0FFEE0000000000000000B3 /* ComposeParser in Frameworks */,
 				C0FFEE0000000000000000B4 /* ComposePlanner in Frameworks */,
@@ -82,8 +76,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D0A200000000000000000005 /* OrchardRuntime in Frameworks */,
-				D0A100000000000000000005 /* OrchardDomain in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -137,11 +129,9 @@
 			);
 			name = Orchard;
 			packageProductDependencies = (
+				D0A300000000000000000002 /* OrchardApplication */,
 				D0A200000000000000000002 /* OrchardRuntime */,
 				D0A100000000000000000002 /* OrchardDomain */,
-				C201AD5A2F86944400E6D0B2 /* ContainerAPIClient */,
-				C201AD5D2F86944400E6D0B2 /* MachineAPIClient */,
-				C201AD5F2F86944400E6D0B2 /* TerminalProgress */,
 				C0FFEE0000000000000000A2 /* ComposeModel */,
 				C0FFEE0000000000000000A3 /* ComposeParser */,
 				C0FFEE0000000000000000A4 /* ComposePlanner */,
@@ -169,8 +159,6 @@
 			);
 			name = OrchardTests;
 			packageProductDependencies = (
-				D0A200000000000000000004 /* OrchardRuntime */,
-				D0A100000000000000000004 /* OrchardDomain */,
 			);
 			productName = OrchardTests;
 			productReference = C25FE6F52E00C69500A8CD32 /* OrchardTests.xctest */;
@@ -233,7 +221,6 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				D0A100000000000000000001 /* XCLocalSwiftPackageReference "OrchardCore" */,
-				C201AD592F86944400E6D0B2 /* XCRemoteSwiftPackageReference "container" */,
 				AAAA0000000000000000AA01 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				C0FFEE0000000000000000A1 /* XCRemoteSwiftPackageReference "compose" */,
 			);
@@ -658,14 +645,6 @@
 				minimumVersion = 0.3.0;
 			};
 		};
-		C201AD592F86944400E6D0B2 /* XCRemoteSwiftPackageReference "container" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/apple/container.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.4.1;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -689,27 +668,7 @@
 			package = C0FFEE0000000000000000A1 /* XCRemoteSwiftPackageReference "compose" */;
 			productName = ComposePlanner;
 		};
-		C201AD5A2F86944400E6D0B2 /* ContainerAPIClient */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C201AD592F86944400E6D0B2 /* XCRemoteSwiftPackageReference "container" */;
-			productName = ContainerAPIClient;
-		};
-		C201AD5D2F86944400E6D0B2 /* MachineAPIClient */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C201AD592F86944400E6D0B2 /* XCRemoteSwiftPackageReference "container" */;
-			productName = MachineAPIClient;
-		};
-		C201AD5F2F86944400E6D0B2 /* TerminalProgress */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C201AD592F86944400E6D0B2 /* XCRemoteSwiftPackageReference "container" */;
-			productName = TerminalProgress;
-		};
 		D0A100000000000000000002 /* OrchardDomain */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = D0A100000000000000000001 /* XCLocalSwiftPackageReference "OrchardCore" */;
-			productName = OrchardDomain;
-		};
-		D0A100000000000000000004 /* OrchardDomain */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D0A100000000000000000001 /* XCLocalSwiftPackageReference "OrchardCore" */;
 			productName = OrchardDomain;
@@ -719,10 +678,10 @@
 			package = D0A100000000000000000001 /* XCLocalSwiftPackageReference "OrchardCore" */;
 			productName = OrchardRuntime;
 		};
-		D0A200000000000000000004 /* OrchardRuntime */ = {
+		D0A300000000000000000002 /* OrchardApplication */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D0A100000000000000000001 /* XCLocalSwiftPackageReference "OrchardCore" */;
-			productName = OrchardRuntime;
+			productName = OrchardApplication;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

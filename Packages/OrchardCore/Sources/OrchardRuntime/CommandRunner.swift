@@ -26,7 +26,7 @@ public struct SystemCommandRunner: CommandRunner {
 
     /// Quote a single token for `/bin/sh` by wrapping it in single quotes (which suppress
     /// all shell interpretation), escaping any embedded single quote as `'\''`.
-    static func shellQuote(_ token: String) -> String {
+    public static func shellQuote(_ token: String) -> String {
         "'" + token.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 

@@ -269,7 +269,9 @@ A small number of operations still use the `container` CLI via `Foundation.Proce
 This fork is extracting reusable code into [`Packages/OrchardCore`](Packages/OrchardCore).
 `OrchardDomain` contains Foundation-only resource models, validation, error classification,
 and backend protocols. `OrchardRuntime` implements the native XPC, command, model, and
-secret-store adapters. The native SwiftUI application imports both shared modules directly.
+secret-store adapters. `OrchardApplication` owns container creation, lifecycle locking,
+start retries, and snapshot recovery. The native SwiftUI application imports these shared
+modules directly; its service adapter retains UI loading state and alerts.
 The planned browser GUI will use the same Swift code through a standalone HTTP service;
 browser JavaScript does not execute the Swift runtime adapters.
 
