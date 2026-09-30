@@ -1,3 +1,4 @@
+import OrchardDomain
 import Testing
 import Foundation
 @testable import Orchard
@@ -277,7 +278,7 @@ func statsSamplesMachineViaBackingContainer() async {
     let backend = MockContainerBackend()
     // Return stats for whatever id is asked (the backing container id).
     backend.statsHandler = { id in
-        Orchard.ContainerStats(id: id, cpuUsageUsec: 1000, memoryUsageBytes: 100, memoryLimitBytes: 1000,
+        OrchardDomain.ContainerStats(id: id, cpuUsageUsec: 1000, memoryUsageBytes: 100, memoryLimitBytes: 1000,
                                blockReadBytes: 0, blockWriteBytes: 0, networkRxBytes: 0, networkTxBytes: 0, numProcesses: 3)
     }
     let alert = AlertCenter()

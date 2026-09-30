@@ -1,3 +1,4 @@
+import OrchardDomain
 import Foundation
 import ContainerAPIClient
 import ContainerResource
@@ -15,7 +16,7 @@ func mapContainer(_ snapshot: ContainerSnapshot) -> Container {
 
 // MARK: - ContainerConfiguration mapping
 
-func mapContainerConfiguration(_ config: ContainerResource.ContainerConfiguration) -> ContainerConfiguration {
+func mapContainerConfiguration(_ config: ContainerResource.ContainerConfiguration) -> OrchardDomain.ContainerConfiguration {
     ContainerConfiguration(
         id: config.id,
         hostname: config.networks.first?.options.hostname,
@@ -51,7 +52,7 @@ func mapAttachment(_ attachment: Attachment) -> Network {
 // MARK: - Process mapping
 
 func mapProcessConfiguration(_ process: ProcessConfiguration) -> initProcess {
-    let user: User
+    let user: OrchardDomain.User
     switch process.user {
     case .id(let uid, let gid):
         user = User(id: UserID(gid: Int(gid), uid: Int(uid)), raw: nil)
@@ -73,7 +74,7 @@ func mapProcessConfiguration(_ process: ProcessConfiguration) -> initProcess {
 
 // MARK: - Mount mapping
 
-func mapFilesystem(_ fs: Filesystem) -> Mount {
+func mapFilesystem(_ fs: Filesystem) -> OrchardDomain.Mount {
     let mountType: MountType
     if fs.isTmpfs {
         mountType = MountType(tmpfs: Tmpfs(), virtiofs: nil)
@@ -94,10 +95,10 @@ func mapFilesystem(_ fs: Filesystem) -> Mount {
 // MARK: - Platform mapping
 
 // KNOWN-ISSUE (2026-07-04): variant is hardcoded to nil, dropping the OCI platform variant
-// (e.g. arm64 "v8") even though Orchard.Platform carries a `variant` field. Populate it from
+// (e.g. arm64 "v8") even though OrchardDomain.Platform carries a `variant` field. Populate it from
 // the source platform if the variant is ever surfaced in the UI.
-func mapPlatform(_ platform: ContainerizationOCI.Platform) -> Orchard.Platform {
-    Orchard.Platform(
+func mapPlatform(_ platform: ContainerizationOCI.Platform) -> OrchardDomain.Platform {
+    OrchardDomain.Platform(
         os: "\(platform.os)",
         architecture: "\(platform.architecture)",
         variant: nil
@@ -106,7 +107,7 @@ func mapPlatform(_ platform: ContainerizationOCI.Platform) -> Orchard.Platform {
 
 // MARK: - Image mapping
 
-func mapImageDescription(_ image: ImageDescription) -> Image {
+func mapImageDescription(_ image: ImageDescription) -> OrchardDomain.Image {
     Image(
         descriptor: ImageDescriptor(
             mediaType: image.descriptor.mediaType,
@@ -145,8 +146,8 @@ func mapDNSConfiguration(_ dns: ContainerResource.ContainerConfiguration.DNSConf
 
 // MARK: - Resources mapping
 
-func mapResources(_ resources: ContainerResource.ContainerConfiguration.Resources) -> Orchard.Resources {
-    Orchard.Resources(
+func mapResources(_ resources: ContainerResource.ContainerConfiguration.Resources) -> OrchardDomain.Resources {
+    OrchardDomain.Resources(
         cpus: resources.cpus,
         memoryInBytes: Int(resources.memoryInBytes)
     )
@@ -165,8 +166,8 @@ func mapPublishPort(_ port: PublishPort) -> PublishedPort {
 
 // MARK: - Stats mapping
 
-func mapContainerStats(_ stats: ContainerResource.ContainerStats) -> Orchard.ContainerStats {
-    Orchard.ContainerStats(
+func mapContainerStats(_ stats: ContainerResource.ContainerStats) -> OrchardDomain.ContainerStats {
+    OrchardDomain.ContainerStats(
         id: stats.id,
         cpuUsageUsec: Int(stats.cpuUsageUsec ?? 0),
         memoryUsageBytes: Int(stats.memoryUsageBytes ?? 0),
@@ -209,7 +210,7 @@ func mapNetworkResource(_ resource: NetworkResource) -> ContainerNetwork {
         id: resource.id,
         state: "running",
         config: NetworkConfig(labels: resource.labels.dictionary, id: resource.id),
-        status: Orchard.NetworkStatus(
+        status: OrchardDomain.NetworkStatus(
             gateway: "\(resource.status.ipv4Gateway)",
             address: "\(resource.status.ipv4Subnet)"
         ),

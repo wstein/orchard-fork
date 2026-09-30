@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import Orchard
+import OrchardDomain
 
 private func error(_ message: String) -> NSError {
     NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: message])

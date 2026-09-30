@@ -1,3 +1,4 @@
+import OrchardDomain
 import Foundation
 
 /// A derived, per-tick resource sample for one container. Unlike `ContainerStats`

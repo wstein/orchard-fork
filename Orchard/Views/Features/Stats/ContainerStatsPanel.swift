@@ -1,3 +1,4 @@
+import OrchardDomain
 import SwiftUI
 
 /// Per-container resource view: a master–detail row per metric (current values on the left,

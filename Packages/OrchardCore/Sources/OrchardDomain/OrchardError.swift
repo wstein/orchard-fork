@@ -1,7 +1,7 @@
 import Foundation
 
 /// Typed errors surfaced to the user. User-facing copy lives in `errorDescription`.
-enum OrchardError: Error, LocalizedError, Equatable {
+public enum OrchardError: Error, LocalizedError, Equatable, Sendable {
     case binaryNotFound(searched: [String])
     case cliFailed(command: String, exitCode: Int32, stderr: String?)
     case decodeFailed(what: String, preview: String)
@@ -28,7 +28,7 @@ enum OrchardError: Error, LocalizedError, Equatable {
     /// An error we haven't classified; carries the original message verbatim.
     case generic(String)
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .binaryNotFound(let searched):
             return "The container binary could not be found. Searched: \(searched.joined(separator: ", "))."
@@ -73,7 +73,7 @@ extension OrchardError {
     /// Classify a raw error thrown while starting/bootstrapping a container. The runtime
     /// reports these as opaque messages, so this is where the message-string matching is
     /// pinned against the supported container version — one place, unit-tested.
-    static func classifyStartError(_ error: Error, id: String) -> OrchardError {
+    public static func classifyStartError(_ error: Error, id: String) -> OrchardError {
         let message = error.localizedDescription
         if message.contains("not found") {
             return .containerNotFound(id: id)
@@ -96,7 +96,7 @@ extension OrchardError {
     /// rootfs advertises discard, and the daemon adds "/" to the target list for every
     /// container that isn't read-only. So `.trimUnsupported` is the expected outcome
     /// today, not an edge case, and says so rather than blaming the user's setup.
-    static func classifyCleanError(_ error: Error, id: String) -> OrchardError {
+    public static func classifyCleanError(_ error: Error, id: String) -> OrchardError {
         let message = error.localizedDescription
         if message.contains("trim failed") || message.contains("filesystemOperation") {
             return .trimUnsupported(id: id)
@@ -110,7 +110,7 @@ extension OrchardError {
     /// Whether a CLI stderr indicates the resource already exists — treated as an
     /// idempotent success (e.g. the recommended kernel is already installed). Kept here
     /// beside `classifyStartError` so all runtime message-matching lives in one place.
-    static func isAlreadyExistsError(_ stderr: String) -> Bool {
+    public static func isAlreadyExistsError(_ stderr: String) -> Bool {
         stderr.contains("item with the same name already exists") || stderr.contains("File exists")
     }
 }

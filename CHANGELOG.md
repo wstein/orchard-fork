@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Shared `OrchardDomain` Swift package used by the native GUI, with independently runnable domain tests and public models/protocols for the standalone service.
+
 ## [2.4.3] - 2026-09-21
 
 ### Added

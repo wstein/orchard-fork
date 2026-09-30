@@ -1,3 +1,4 @@
+import OrchardDomain
 import Foundation
 @testable import Orchard
 
@@ -103,7 +104,7 @@ final class MockContainerBackend: ContainerBackend, @unchecked Sendable {
     private var _pingCount = 0
     private var _pingHandler: (@Sendable () async throws -> SystemHealthInfo)?
     private var _bootstrapAndStartHandler: (@Sendable (Int) throws -> Void)?
-    private var _statsHandler: (@Sendable (String) throws -> Orchard.ContainerStats)?
+    private var _statsHandler: (@Sendable (String) throws -> OrchardDomain.ContainerStats)?
 
     private var _pulledReferences: [String] = []
     private var _deletedImageReferences: [String] = []
@@ -211,7 +212,7 @@ final class MockContainerBackend: ContainerBackend, @unchecked Sendable {
         set { lock.withLock { _bootstrapAndStartHandler = newValue } }
     }
     /// Per-container stats; throw to simulate a failure for that container.
-    var statsHandler: (@Sendable (String) throws -> Orchard.ContainerStats)? {
+    var statsHandler: (@Sendable (String) throws -> OrchardDomain.ContainerStats)? {
         get { lock.withLock { _statsHandler } }
         set { lock.withLock { _statsHandler = newValue } }
     }
@@ -259,7 +260,7 @@ final class MockContainerBackend: ContainerBackend, @unchecked Sendable {
         if let cleanContainerError { throw cleanContainerError }
         lock.withLock { _cleanedContainers.append(id) }
     }
-    func stats(id: String) async throws -> Orchard.ContainerStats {
+    func stats(id: String) async throws -> OrchardDomain.ContainerStats {
         if let handler = statsHandler { return try handler(id) }
         throw NotConfigured()
     }
@@ -392,8 +393,8 @@ func makeNetwork(id: String, state: String = "running") -> ContainerNetwork {
 }
 
 /// A stats value with the given id and otherwise-zero fields.
-func makeStats(id: String) -> Orchard.ContainerStats {
-    Orchard.ContainerStats(
+func makeStats(id: String) -> OrchardDomain.ContainerStats {
+    OrchardDomain.ContainerStats(
         id: id, cpuUsageUsec: 0, memoryUsageBytes: 0, memoryLimitBytes: 0,
         blockReadBytes: 0, blockWriteBytes: 0, networkRxBytes: 0, networkTxBytes: 0, numProcesses: 0
     )

@@ -15,3 +15,7 @@ badge/
 .omo/
 UITestResults/
 scripts/.build/
+
+# Swift package build artifacts
+**/.build/
+**/.swiftpm/

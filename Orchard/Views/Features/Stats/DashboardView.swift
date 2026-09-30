@@ -1,3 +1,4 @@
+import OrchardDomain
 import SwiftUI
 
 struct DashboardView: View {

@@ -1,3 +1,4 @@
+import OrchardDomain
 import SwiftUI
 
 /// Sheet to start a new managed model server (mlx_lm.server). Minimal by design: a model id,

@@ -1,3 +1,4 @@
+import OrchardDomain
 import Foundation
 
 /// How Orchard recognises a "sandbox": a workload wired to a local model. Two signals - an

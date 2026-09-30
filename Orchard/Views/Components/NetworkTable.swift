@@ -1,3 +1,4 @@
+import OrchardDomain
 import SwiftUI
 
 /// Networks in the same table as everything else, so a compose project's networks read the

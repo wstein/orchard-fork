@@ -1,3 +1,4 @@
+import OrchardDomain
 import Foundation
 
 /// Owns container-machine state and lifecycle, backed by the machine XPC client. Mirrors the

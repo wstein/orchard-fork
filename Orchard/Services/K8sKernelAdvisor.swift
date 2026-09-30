@@ -1,3 +1,4 @@
+import OrchardDomain
 import Foundation
 
 /// Best-effort advice about whether the guest kernel can bootstrap a Kubernetes cluster.
