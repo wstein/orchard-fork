@@ -1,7 +1,7 @@
 import OrchardDomain
 import Testing
 import Foundation
-@testable import Orchard
+@testable import OrchardRuntime
 
 // The container↔model bridge: pure endpoint computation, env-var injection, and the
 // provider-listing JSON parsing. No I/O, so these assert exact strings.

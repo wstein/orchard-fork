@@ -11,7 +11,9 @@ import OrchardDomain
 
 /// `ContainerBackend` backed by the real XPC client, translating client model types to
 /// and from the app's domain models.
-struct LiveContainerBackend: ContainerBackend {
+public struct LiveContainerBackend: ContainerBackend {
+    public init() {}
+
     /// The persisted system configuration (registry, DNS, scheme, …) that image
     /// operations require as of container 1.1.0. Loaded from the same TOML layers the
     /// `container` CLI reads, so pulls resolve identically to the command line.
@@ -19,7 +21,7 @@ struct LiveContainerBackend: ContainerBackend {
         try await ConfigurationLoader.load()
     }
 
-    func listContainers() async throws -> [Container] {
+    public func listContainers() async throws -> [Container] {
         do {
             let snapshots = try await ContainerClient().list()
             return snapshots
@@ -28,13 +30,13 @@ struct LiveContainerBackend: ContainerBackend {
         } catch { throw mapContainerError(error) }
     }
 
-    func stopContainer(id: String) async throws {
+    public func stopContainer(id: String) async throws {
         do {
             try await ContainerClient().stop(id: id)
         } catch { throw mapContainerError(error) }
     }
 
-    func killContainer(id: String, signal: Int32) async throws {
+    public func killContainer(id: String, signal: Int32) async throws {
         // As of container 1.1.0 the client takes the signal as a name/number string;
         // Signal(_:) on the server parses the numeric form.
         do {
@@ -42,7 +44,7 @@ struct LiveContainerBackend: ContainerBackend {
         } catch { throw mapContainerError(error) }
     }
 
-    func cleanContainer(id: String) async throws {
+    public func cleanContainer(id: String) async throws {
         // container 1.4.1 added the route; the daemon trims the container's rootfs and
         // its volumes from inside the workload's mount namespace.
         do {
@@ -50,7 +52,7 @@ struct LiveContainerBackend: ContainerBackend {
         } catch { throw mapContainerError(error) }
     }
 
-    func exportContainer(id: String, to destination: URL) async throws {
+    public func exportContainer(id: String, to destination: URL) async throws {
         // Mirror the CLI: have the daemon write into a scratch directory, then
         // move the archive into place so a failed export never leaves a partial
         // file at the user's chosen path.
@@ -74,7 +76,7 @@ struct LiveContainerBackend: ContainerBackend {
         }
     }
 
-    func deleteContainer(id: String, force: Bool) async throws {
+    public func deleteContainer(id: String, force: Bool) async throws {
         do {
             if force {
                 try await ContainerClient().delete(id: id, force: true)
@@ -84,7 +86,7 @@ struct LiveContainerBackend: ContainerBackend {
         } catch { throw mapContainerError(error) }
     }
 
-    func bootstrapAndStart(id: String) async throws {
+    public func bootstrapAndStart(id: String) async throws {
         do {
             let stdio: [FileHandle?] = [nil, nil, nil]
             let process = try await ContainerClient().bootstrap(id: id, stdio: stdio)
@@ -92,20 +94,20 @@ struct LiveContainerBackend: ContainerBackend {
         } catch { throw mapContainerError(error) }
     }
 
-    func containerLogs(id: String) async throws -> [FileHandle] {
+    public func containerLogs(id: String) async throws -> [FileHandle] {
         do {
             return try await ContainerClient().logs(id: id)
         } catch { throw mapContainerError(error) }
     }
 
-    func stats(id: String) async throws -> OrchardDomain.ContainerStats {
+    public func stats(id: String) async throws -> OrchardDomain.ContainerStats {
         do {
             let stats = try await ContainerClient().stats(id: id)
             return mapContainerStats(stats)
         } catch { throw mapContainerError(error) }
     }
 
-    func createContainer(_ spec: ContainerCreateSpec) async throws {
+    public func createContainer(_ spec: ContainerCreateSpec) async throws {
         do {
             // Translate the spec's app types into the client's configuration types.
             var mounts: [Filesystem] = []
@@ -201,20 +203,26 @@ struct LiveContainerBackend: ContainerBackend {
         } catch { throw mapContainerError(error) }
     }
 
-    func listImages() async throws -> [ContainerImage] {
+    public func listImages() async throws -> [ContainerImage] {
         do {
             let images = try await ClientImage.list()
             return images.map { mapClientImage($0) }
         } catch { throw mapContainerError(error) }
     }
 
-    func pullImage(reference: String, onProgress: (@Sendable (ImagePullMetrics) -> Void)?) async throws {
+    public func pullImage(reference: String, onProgress: (@Sendable (ImagePullMetrics) -> Void)?) async throws {
         do {
             let folder = onProgress.map { PullProgressFolder(onProgress: $0) }
+            let progressUpdate: (@Sendable ([ProgressUpdateEvent]) async -> Void)?
+            if let folder {
+                progressUpdate = { events in folder.handle(events) }
+            } else {
+                progressUpdate = nil
+            }
             _ = try await ClientImage.pull(
                 reference: reference,
                 containerSystemConfig: try await loadContainerSystemConfig(),
-                progressUpdate: folder.map { folder in { events in folder.handle(events) } }
+                progressUpdate: progressUpdate
             )
         } catch { throw mapContainerError(error) }
     }
@@ -259,13 +267,13 @@ struct LiveContainerBackend: ContainerBackend {
         }
     }
 
-    func deleteImage(reference: String) async throws {
+    public func deleteImage(reference: String) async throws {
         do {
             try await ClientImage.delete(reference: reference)
         } catch { throw mapContainerError(error) }
     }
 
-    func inspectImage(reference: String) async throws -> ImageInspection {
+    public func inspectImage(reference: String) async throws -> ImageInspection {
         do {
             // container 1.1.0 removed ClientImage.details(); rebuild the inspection from the
             // OCI index (per-platform manifests) and each platform's config blob.
@@ -309,14 +317,14 @@ struct LiveContainerBackend: ContainerBackend {
         } catch { throw mapContainerError(error) }
     }
 
-    func listNetworks() async throws -> [ContainerNetwork] {
+    public func listNetworks() async throws -> [ContainerNetwork] {
         do {
             let resources = try await NetworkClient().list()
             return resources.map { mapNetworkResource($0) }
         } catch { throw mapContainerError(error) }
     }
 
-    func createNetwork(name: String, subnet: String?, labels: [String: String]) async throws {
+    public func createNetwork(name: String, subnet: String?, labels: [String: String]) async throws {
         do {
             let ipv4Subnet = try subnet.flatMap { $0.isEmpty ? nil : try CIDRv4($0) }
             let config = try NetworkConfiguration(
@@ -330,20 +338,20 @@ struct LiveContainerBackend: ContainerBackend {
         } catch { throw mapContainerError(error) }
     }
 
-    func deleteNetwork(id: String) async throws {
+    public func deleteNetwork(id: String) async throws {
         do {
             try await NetworkClient().delete(id: id)
         } catch { throw mapContainerError(error) }
     }
 
-    func ping() async throws -> SystemHealthInfo {
+    public func ping() async throws -> SystemHealthInfo {
         do {
             let health = try await ClientHealthCheck.ping()
             return SystemHealthInfo(apiServerVersion: health.apiServerVersion)
         } catch { throw mapContainerError(error) }
     }
 
-    func diskUsage() async throws -> SystemDiskUsage {
+    public func diskUsage() async throws -> SystemDiskUsage {
         do {
             let stats = try await ClientDiskUsage.get()
             return mapDiskUsageStats(stats)

@@ -4,7 +4,7 @@ import Foundation
 import ContainerResource
 import ContainerizationOCI
 import ContainerAPIClient
-@testable import Orchard
+@testable import OrchardRuntime
 
 // Pure mapping from the upstream `container` framework types to Orchard's own models.
 // No mocks, no async — construct an input value, assert the mapped output.

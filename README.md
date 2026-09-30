@@ -268,14 +268,15 @@ A small number of operations still use the `container` CLI via `Foundation.Proce
 
 This fork is extracting reusable code into [`Packages/OrchardCore`](Packages/OrchardCore).
 `OrchardDomain` contains Foundation-only resource models, validation, error classification,
-and backend protocols. The native SwiftUI application imports these shared types directly.
+and backend protocols. `OrchardRuntime` implements the native XPC, command, model, and
+secret-store adapters. The native SwiftUI application imports both shared modules directly.
 The planned browser GUI will use the same Swift code through a standalone HTTP service;
 browser JavaScript does not execute the Swift runtime adapters.
 
 Desktop presentation, terminal app discovery, and application updates remain in `Orchard/`.
 The existing `site/` directory remains the project documentation website.
 
-Run the domain tests without launching the desktop application:
+Run the domain and runtime tests without launching the desktop application:
 
 ```bash
 swift test --package-path Packages/OrchardCore

@@ -2,8 +2,10 @@ import Foundation
 import OrchardDomain
 
 /// The production `CommandRunner`: spawns real processes.
-struct SystemCommandRunner: CommandRunner {
-    func run(program: String, arguments: [String]) async throws -> ProcessResult {
+public struct SystemCommandRunner: CommandRunner {
+    public init() {}
+
+    public func run(program: String, arguments: [String]) async throws -> ProcessResult {
         // Run the blocking Process work on a global-queue thread — not a Swift-concurrency
         // cooperative thread — so several concurrent CLI calls can't starve the pool.
         try await withCheckedThrowingContinuation { continuation in
@@ -17,7 +19,7 @@ struct SystemCommandRunner: CommandRunner {
         }
     }
 
-    func runWithSudo(program: String, arguments: [String]) async throws -> ProcessResult {
+    public func runWithSudo(program: String, arguments: [String]) async throws -> ProcessResult {
         let script = SystemCommandRunner.adminScript(program: program, arguments: arguments)
         return try await run(program: "/usr/bin/osascript", arguments: ["-e", script])
     }
@@ -41,7 +43,7 @@ struct SystemCommandRunner: CommandRunner {
         return "do shell script \"\(escaped)\" with administrator privileges"
     }
 
-    func runStreaming(
+    public func runStreaming(
         program: String,
         arguments: [String],
         onLine: @escaping @Sendable (String) -> Void

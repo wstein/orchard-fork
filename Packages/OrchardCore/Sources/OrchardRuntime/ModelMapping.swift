@@ -17,7 +17,7 @@ func mapContainer(_ snapshot: ContainerSnapshot) -> Container {
 // MARK: - ContainerConfiguration mapping
 
 func mapContainerConfiguration(_ config: ContainerResource.ContainerConfiguration) -> OrchardDomain.ContainerConfiguration {
-    ContainerConfiguration(
+    OrchardDomain.ContainerConfiguration(
         id: config.id,
         hostname: config.networks.first?.options.hostname,
         networkName: config.networks.first?.network,
@@ -55,9 +55,9 @@ func mapProcessConfiguration(_ process: ProcessConfiguration) -> initProcess {
     let user: OrchardDomain.User
     switch process.user {
     case .id(let uid, let gid):
-        user = User(id: UserID(gid: Int(gid), uid: Int(uid)), raw: nil)
+        user = OrchardDomain.User(id: OrchardDomain.UserID(gid: Int(gid), uid: Int(uid)), raw: nil)
     case .raw(let userString):
-        user = User(id: nil, raw: UserRaw(userString: userString))
+        user = OrchardDomain.User(id: nil, raw: OrchardDomain.UserRaw(userString: userString))
     }
 
     return initProcess(
@@ -84,7 +84,7 @@ func mapFilesystem(_ fs: Filesystem) -> OrchardDomain.Mount {
         mountType = MountType(tmpfs: nil, virtiofs: nil)
     }
 
-    return Mount(
+    return OrchardDomain.Mount(
         type: mountType,
         source: fs.source,
         options: fs.options,
@@ -108,7 +108,7 @@ func mapPlatform(_ platform: ContainerizationOCI.Platform) -> OrchardDomain.Plat
 // MARK: - Image mapping
 
 func mapImageDescription(_ image: ImageDescription) -> OrchardDomain.Image {
-    Image(
+    OrchardDomain.Image(
         descriptor: ImageDescriptor(
             mediaType: image.descriptor.mediaType,
             digest: "\(image.descriptor.digest)",

@@ -12,8 +12,10 @@ import OrchardDomain
 /// `MachineBackend` backed by the real machine XPC client (`MachineClient`, talking to the
 /// separate `com.apple.container.core.machine-apiserver` Mach service), translating the
 /// client's `MachineSnapshot` to the app's `Machine` model.
-struct LiveMachineBackend: MachineBackend {
-    func listMachines() async throws -> [Machine] {
+public struct LiveMachineBackend: MachineBackend {
+    public init() {}
+
+    public func listMachines() async throws -> [Machine] {
         let client = MachineClient()
         do {
             let snapshots = try await client.list()
@@ -26,7 +28,7 @@ struct LiveMachineBackend: MachineBackend {
         }
     }
 
-    func inspectMachine(id: String) async throws -> Machine {
+    public func inspectMachine(id: String) async throws -> Machine {
         let client = MachineClient()
         do {
             let snapshot = try await client.inspect(id: id)
@@ -37,7 +39,7 @@ struct LiveMachineBackend: MachineBackend {
         }
     }
 
-    func createMachine(_ spec: MachineCreateSpec) async throws {
+    public func createMachine(_ spec: MachineCreateSpec) async throws {
         do {
             // Validate a custom kernel path up front for a clean error (mirrors the CLI).
             if let kernelPath = spec.kernelPath, !kernelPath.isEmpty {
@@ -91,7 +93,7 @@ struct LiveMachineBackend: MachineBackend {
         }
     }
 
-    func setMachineConfig(id: String, config: MachineConfigSpec) async throws {
+    public func setMachineConfig(id: String, config: MachineConfigSpec) async throws {
         do {
             if let kernelPath = config.kernelPath, !kernelPath.isEmpty {
                 _ = try MachineConfig.validateKernelPath(kernelPath)
@@ -115,7 +117,7 @@ struct LiveMachineBackend: MachineBackend {
         }
     }
 
-    func bootMachine(id: String) async throws {
+    public func bootMachine(id: String) async throws {
         do {
             _ = try await MachineClient().boot(id: id)
         } catch {
@@ -123,7 +125,7 @@ struct LiveMachineBackend: MachineBackend {
         }
     }
 
-    func stopMachine(id: String) async throws {
+    public func stopMachine(id: String) async throws {
         do {
             try await MachineClient().stop(id: id)
         } catch {
@@ -131,7 +133,7 @@ struct LiveMachineBackend: MachineBackend {
         }
     }
 
-    func deleteMachine(id: String) async throws {
+    public func deleteMachine(id: String) async throws {
         do {
             try await MachineClient().delete(id: id)
         } catch {
@@ -139,7 +141,7 @@ struct LiveMachineBackend: MachineBackend {
         }
     }
 
-    func setDefaultMachine(id: String) async throws {
+    public func setDefaultMachine(id: String) async throws {
         do {
             try await MachineClient().setDefault(id: id)
         } catch {
@@ -147,7 +149,7 @@ struct LiveMachineBackend: MachineBackend {
         }
     }
 
-    func machineLogs(id: String) async throws -> [FileHandle] {
+    public func machineLogs(id: String) async throws -> [FileHandle] {
         do {
             return try await MachineClient().logs(id: id)
         } catch {

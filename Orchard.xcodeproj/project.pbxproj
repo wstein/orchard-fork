@@ -16,6 +16,8 @@
 		C201AD5E2F86944400E6D0B2 /* TerminalProgress in Frameworks */ = {isa = PBXBuildFile; productRef = C201AD5F2F86944400E6D0B2 /* TerminalProgress */; };
 		D0A100000000000000000003 /* OrchardDomain in Frameworks */ = {isa = PBXBuildFile; productRef = D0A100000000000000000002 /* OrchardDomain */; };
 		D0A100000000000000000005 /* OrchardDomain in Frameworks */ = {isa = PBXBuildFile; productRef = D0A100000000000000000004 /* OrchardDomain */; };
+		D0A200000000000000000003 /* OrchardRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = D0A200000000000000000002 /* OrchardRuntime */; };
+		D0A200000000000000000005 /* OrchardRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = D0A200000000000000000004 /* OrchardRuntime */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -64,6 +66,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D0A200000000000000000003 /* OrchardRuntime in Frameworks */,
 				D0A100000000000000000003 /* OrchardDomain in Frameworks */,
 				C201AD5B2F86944400E6D0B2 /* ContainerAPIClient in Frameworks */,
 				C201AD5C2F86944400E6D0B2 /* MachineAPIClient in Frameworks */,
@@ -79,6 +82,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D0A200000000000000000005 /* OrchardRuntime in Frameworks */,
 				D0A100000000000000000005 /* OrchardDomain in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -133,6 +137,7 @@
 			);
 			name = Orchard;
 			packageProductDependencies = (
+				D0A200000000000000000002 /* OrchardRuntime */,
 				D0A100000000000000000002 /* OrchardDomain */,
 				C201AD5A2F86944400E6D0B2 /* ContainerAPIClient */,
 				C201AD5D2F86944400E6D0B2 /* MachineAPIClient */,
@@ -164,6 +169,7 @@
 			);
 			name = OrchardTests;
 			packageProductDependencies = (
+				D0A200000000000000000004 /* OrchardRuntime */,
 				D0A100000000000000000004 /* OrchardDomain */,
 			);
 			productName = OrchardTests;
@@ -707,6 +713,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D0A100000000000000000001 /* XCLocalSwiftPackageReference "OrchardCore" */;
 			productName = OrchardDomain;
+		};
+		D0A200000000000000000002 /* OrchardRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D0A100000000000000000001 /* XCLocalSwiftPackageReference "OrchardCore" */;
+			productName = OrchardRuntime;
+		};
+		D0A200000000000000000004 /* OrchardRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D0A100000000000000000001 /* XCLocalSwiftPackageReference "OrchardCore" */;
+			productName = OrchardRuntime;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

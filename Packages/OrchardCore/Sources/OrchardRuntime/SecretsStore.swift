@@ -3,14 +3,14 @@ import Security
 import OrchardDomain
 
 /// Generic-password keychain items under a single service name, one item per account.
-struct KeychainSecretsStore: SecretsStore {
+public struct KeychainSecretsStore: SecretsStore {
     let service: String
 
-    init(service: String = "dev.andon.orchard.model-api-keys") {
+    public init(service: String = "dev.andon.orchard.model-api-keys") {
         self.service = service
     }
 
-    func secret(for account: String) -> String? {
+    public func secret(for account: String) -> String? {
         var query = baseQuery(account: account)
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -20,7 +20,7 @@ struct KeychainSecretsStore: SecretsStore {
         return String(data: data, encoding: .utf8)
     }
 
-    func setSecret(_ value: String?, for account: String) throws {
+    public func setSecret(_ value: String?, for account: String) throws {
         // Deleting what was never there is the normal path for a first save, not a failure.
         let deleted = SecItemDelete(baseQuery(account: account) as CFDictionary)
         if deleted != errSecSuccess, deleted != errSecItemNotFound {
@@ -43,7 +43,7 @@ struct KeychainSecretsStore: SecretsStore {
         return OrchardError.generic("Could not \(verb) the API key in the keychain: \(detail) (\(status)).")
     }
 
-    func allSecrets() -> [String: String] {
+    public func allSecrets() -> [String: String] {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -75,15 +75,16 @@ struct KeychainSecretsStore: SecretsStore {
 }
 
 /// Test double: a locked dictionary, no keychain involvement.
-final class InMemorySecretsStore: SecretsStore, @unchecked Sendable {
+public final class InMemorySecretsStore: SecretsStore, @unchecked Sendable {
+    public init() {}
     private var storage: [String: String] = [:]
     private let lock = NSLock()
 
-    func secret(for account: String) -> String? {
+    public func secret(for account: String) -> String? {
         lock.withLock { storage[account] }
     }
 
-    func setSecret(_ value: String?, for account: String) throws {
+    public func setSecret(_ value: String?, for account: String) throws {
         lock.withLock {
             if let value, !value.isEmpty {
                 storage[account] = value
@@ -93,7 +94,7 @@ final class InMemorySecretsStore: SecretsStore, @unchecked Sendable {
         }
     }
 
-    func allSecrets() -> [String: String] {
+    public func allSecrets() -> [String: String] {
         lock.withLock { storage }
     }
 }

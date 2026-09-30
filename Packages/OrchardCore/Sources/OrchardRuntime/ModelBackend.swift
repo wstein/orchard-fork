@@ -10,7 +10,7 @@ import OrchardDomain
 /// connection there. A real provider answers 200 directly, so a redirect means no more
 /// than "not a provider". Stateless, hence safe to share across concurrent probes.
 private final class ProbeRedirectBlocker: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
-    func urlSession(
+    public func urlSession(
         _ session: URLSession,
         task: URLSessionTask,
         willPerformHTTPRedirection response: HTTPURLResponse,
@@ -24,14 +24,14 @@ private let probeRedirectBlocker = ProbeRedirectBlocker()
 
 /// `ModelBackend` that discovers providers by probing their conventional loopback ports
 /// over HTTP. An unreachable port simply means "that provider isn't running."
-struct LiveModelBackend: ModelBackend {
+public struct LiveModelBackend: ModelBackend {
     private let session: URLSession
 
-    init(session: URLSession = .shared) {
+    public init(session: URLSession = .shared) {
         self.session = session
     }
 
-    func detectProviders(endpoints: [ModelEndpoint], apiKeys: [String: String]) async -> [ModelProvider] {
+    public func detectProviders(endpoints: [ModelEndpoint], apiKeys: [String: String]) async -> [ModelProvider] {
         let session = self.session
         return await withTaskGroup(of: ModelProvider?.self) { group in
             for endpoint in endpoints where endpoint.isEnabled {
@@ -107,7 +107,7 @@ struct LiveModelBackend: ModelBackend {
         return kind
     }
 
-    func complete(host: String, port: UInt16, api: ModelAPIStyle, model: String, messages: [ChatMessage], apiKey: String?) async throws -> String {
+    public func complete(host: String, port: UInt16, api: ModelAPIStyle, model: String, messages: [ChatMessage], apiKey: String?) async throws -> String {
         let root = "http://\(ModelEndpoint.authority(ModelEndpoint.dialHost(host), port: port))"
         let wireMessages = messages.map { ["role": $0.role.rawValue, "content": $0.content] }
         let path: String
