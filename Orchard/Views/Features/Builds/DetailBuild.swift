@@ -1,3 +1,4 @@
+import OrchardDomain
 import SwiftUI
 
 /// The Builds tab's detail column: one build's status and full log, live while

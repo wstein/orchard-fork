@@ -7,7 +7,7 @@ import Foundation
 // MARK: - Builder status
 
 /// Outcome of parsing `container builder status --format json` stdout.
-enum BuilderParseResult {
+public enum BuilderParseResult: Sendable {
     /// No builder present — plain-text "not running", or empty / `null` / `[]` JSON.
     case notRunning
     /// One or more builders decoded from JSON (single object or array).
@@ -16,7 +16,7 @@ enum BuilderParseResult {
     case decodeFailure(preview: String)
 }
 
-func parseBuilderStatus(stdout: String) -> BuilderParseResult {
+public func parseBuilderStatus(stdout: String) -> BuilderParseResult {
     let trimmed = stdout.trimmingCharacters(in: .whitespacesAndNewlines)
     let lower = trimmed.lowercased()
 
@@ -43,7 +43,7 @@ func parseBuilderStatus(stdout: String) -> BuilderParseResult {
 
 // MARK: - DNS domains
 
-func parseDNSDomains(json output: String, defaultDomain: String?) -> [DNSDomain] {
+public func parseDNSDomains(json output: String, defaultDomain: String?) -> [DNSDomain] {
     var domains: [DNSDomain] = []
     guard let data = output.data(using: .utf8) else { return domains }
 
@@ -67,7 +67,7 @@ private let systemPropertyIDAliases: [String: String] = [
 /// Parses `container system property list --format=json`. As of container 1.0 the daemon
 /// emits a nested object keyed by category (`{"build": {"rosetta": true, …}, …}`); pre-1.0
 /// daemons emitted a flat array of `{id, type, value, description}`. Both are handled.
-func parseSystemProperties(json output: String) -> [SystemProperty] {
+public func parseSystemProperties(json output: String) -> [SystemProperty] {
     guard let data = output.data(using: .utf8),
           let root = try? JSONSerialization.jsonObject(with: data) else {
         return []
@@ -146,7 +146,7 @@ private func normalizeSystemPropertyValue(_ raw: Any) -> (SystemProperty.Propert
 
 // MARK: - Docker Hub search
 
-func parseDockerHubSearch(data: Data) -> [RegistrySearchResult] {
+public func parseDockerHubSearch(data: Data) -> [RegistrySearchResult] {
     guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
           let results = json["results"] as? [[String: Any]] else {
         return []
@@ -172,7 +172,7 @@ func parseDockerHubSearch(data: Data) -> [RegistrySearchResult] {
 /// Splits a command-line string into argv, honouring single quotes, double quotes,
 /// and backslash escapes (outside single quotes) - so `sh -c "echo hi"` yields three
 /// arguments, not four. Lenient: an unterminated quote consumes to end of string.
-func splitCommandLine(_ line: String) -> [String] {
+public func splitCommandLine(_ line: String) -> [String] {
     var args: [String] = []
     var current = ""
     var inSingle = false
@@ -216,7 +216,7 @@ func splitCommandLine(_ line: String) -> [String] {
 /// Joins argv back into a command-line string that `splitCommandLine` round-trips:
 /// arguments containing whitespace, quotes, or backslashes are double-quoted with
 /// backslash escapes.
-func joinCommandLine(_ args: [String]) -> String {
+public func joinCommandLine(_ args: [String]) -> String {
     args.map { arg in
         if arg.isEmpty { return "\"\"" }
         let needsQuoting = arg.contains(where: { $0 == " " || $0 == "\t" || $0 == "'" || $0 == "\"" || $0 == "\\" })

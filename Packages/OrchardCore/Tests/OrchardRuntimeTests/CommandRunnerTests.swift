@@ -1,5 +1,6 @@
+import OrchardDomain
 import Testing
-@testable import Orchard
+@testable import OrchardRuntime
 
 // The admin script must treat every user-supplied token as literal text — a space,
 // quote, or command substitution must never break out of the quoting and execute as root.

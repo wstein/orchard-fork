@@ -1,3 +1,4 @@
+import OrchardDomain
 import SwiftUI
 
 /// Cluster-wide resource view: the node containers' histories summed tick-by-tick

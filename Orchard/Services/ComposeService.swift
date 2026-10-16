@@ -1,3 +1,4 @@
+import OrchardDomain
 import ComposeModel
 import ComposeParser
 import ComposePlanner

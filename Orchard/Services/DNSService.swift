@@ -1,3 +1,4 @@
+import OrchardDomain
 import Foundation
 
 /// Owns DNS domain state and operations, backed by the `container system dns` CLI

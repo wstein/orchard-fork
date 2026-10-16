@@ -1,3 +1,4 @@
+import OrchardDomain
 import Foundation
 
 /// System-defined label keys for resources owned by container plugins, mirroring

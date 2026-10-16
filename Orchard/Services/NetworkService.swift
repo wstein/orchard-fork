@@ -1,3 +1,4 @@
+import OrchardDomain
 import Foundation
 
 /// Owns container network state and lifecycle, backed by the XPC network client.

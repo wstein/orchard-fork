@@ -1,3 +1,4 @@
+import OrchardDomain
 import SwiftUI
 
 /// Per-machine resource view — the same four-metric panel as containers, fed from the

@@ -1,3 +1,4 @@
+import OrchardDomain
 import SwiftUI
 
 /// Shared four-metric resource panel (CPU / Memory / Network / Disk) — a master–detail row

@@ -264,6 +264,26 @@ Orchard communicates with the container daemon primarily through the `ContainerA
 
 A small number of operations still use the `container` CLI via `Foundation.Process`, each for a structural reason rather than convenience: system start/stop/restart (the daemon is registered with launchd - there is nothing to XPC to until it's running), builder lifecycle (the API exposes no builder surface; the CLI orchestrates it client-side), system properties (a local defaults store, not an API), DNS domain create/delete (requires root, so it runs the CLI under administrator privileges), and kernel selection (installing the recommended kernel provisions it - an operation the API doesn't expose as a single call).
 
+### Shared Swift code
+
+This fork is extracting reusable code into [`Packages/OrchardCore`](Packages/OrchardCore).
+`OrchardDomain` contains Foundation-only resource models, validation, error classification,
+and backend protocols. `OrchardRuntime` implements the native XPC, command, model, and
+secret-store adapters. `OrchardApplication` owns container creation, lifecycle locking,
+start retries, and snapshot recovery. The native SwiftUI application imports these shared
+modules directly; its service adapter retains UI loading state and alerts.
+The planned browser GUI will use the same Swift code through a standalone HTTP service;
+browser JavaScript does not execute the Swift runtime adapters.
+
+Desktop presentation, terminal app discovery, and application updates remain in `Orchard/`.
+The existing `site/` directory remains the project documentation website.
+
+Run the domain and runtime tests without launching the desktop application:
+
+```bash
+swift test --package-path Packages/OrchardCore
+```
+
 ## Installation
 
 You can install Orchard via homebrew or via a prebuilt release package. You can also download the source and build it yourself!

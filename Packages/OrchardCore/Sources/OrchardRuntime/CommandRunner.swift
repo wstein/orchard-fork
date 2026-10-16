@@ -1,50 +1,11 @@
 import Foundation
-
-/// Result of running an external process.
-struct ProcessResult: Sendable {
-    let exitCode: Int32
-    let stdout: String?
-    let stderr: String?
-    var failed: Bool { exitCode != 0 }
-}
-
-/// Abstraction over running external CLI commands, so callers can be driven with a
-/// mock in tests. `run` is `async` and executes off the main actor.
-protocol CommandRunner: Sendable {
-    func run(program: String, arguments: [String]) async throws -> ProcessResult
-    func runWithSudo(program: String, arguments: [String]) async throws -> ProcessResult
-    /// Like `run`, but delivers combined stdout+stderr output line by line while
-    /// the process executes (image builds run for minutes and report progress as
-    /// they go). Cancelling the surrounding task terminates the process.
-    func runStreaming(
-        program: String,
-        arguments: [String],
-        onLine: @escaping @Sendable (String) -> Void
-    ) async throws -> ProcessResult
-}
-
-extension CommandRunner {
-    /// Mocks and callers that never stream fall back to buffered execution,
-    /// emitting the collected output as lines once the process exits.
-    func runStreaming(
-        program: String,
-        arguments: [String],
-        onLine: @escaping @Sendable (String) -> Void
-    ) async throws -> ProcessResult {
-        let result = try await run(program: program, arguments: arguments)
-        for text in [result.stdout, result.stderr] {
-            guard let text, !text.isEmpty else { continue }
-            for line in text.components(separatedBy: "\n") {
-                onLine(line)
-            }
-        }
-        return result
-    }
-}
+import OrchardDomain
 
 /// The production `CommandRunner`: spawns real processes.
-struct SystemCommandRunner: CommandRunner {
-    func run(program: String, arguments: [String]) async throws -> ProcessResult {
+public struct SystemCommandRunner: CommandRunner {
+    public init() {}
+
+    public func run(program: String, arguments: [String]) async throws -> ProcessResult {
         // Run the blocking Process work on a global-queue thread — not a Swift-concurrency
         // cooperative thread — so several concurrent CLI calls can't starve the pool.
         try await withCheckedThrowingContinuation { continuation in
@@ -58,14 +19,14 @@ struct SystemCommandRunner: CommandRunner {
         }
     }
 
-    func runWithSudo(program: String, arguments: [String]) async throws -> ProcessResult {
+    public func runWithSudo(program: String, arguments: [String]) async throws -> ProcessResult {
         let script = SystemCommandRunner.adminScript(program: program, arguments: arguments)
         return try await run(program: "/usr/bin/osascript", arguments: ["-e", script])
     }
 
     /// Quote a single token for `/bin/sh` by wrapping it in single quotes (which suppress
     /// all shell interpretation), escaping any embedded single quote as `'\''`.
-    static func shellQuote(_ token: String) -> String {
+    public static func shellQuote(_ token: String) -> String {
         "'" + token.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
@@ -82,7 +43,7 @@ struct SystemCommandRunner: CommandRunner {
         return "do shell script \"\(escaped)\" with administrator privileges"
     }
 
-    func runStreaming(
+    public func runStreaming(
         program: String,
         arguments: [String],
         onLine: @escaping @Sendable (String) -> Void

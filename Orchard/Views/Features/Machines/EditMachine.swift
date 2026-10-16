@@ -1,3 +1,4 @@
+import OrchardDomain
 import SwiftUI
 
 /// Edit a machine's boot configuration (CPUs, memory, home-mount, nested virtualization,

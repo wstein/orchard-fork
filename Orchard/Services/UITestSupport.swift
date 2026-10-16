@@ -1,3 +1,5 @@
+import OrchardRuntime
+import OrchardDomain
 import Foundation
 
 /// Launch argument that makes the app wire its services to an in-memory stub backend seeded

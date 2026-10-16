@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import Orchard
+import OrchardDomain
 
 // ByteFormat delegates to ByteCountFormatter (locale/OS-dependent output), so we assert
 // only robust invariants, not exact strings.

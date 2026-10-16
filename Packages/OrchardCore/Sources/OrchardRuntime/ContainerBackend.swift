@@ -5,166 +5,15 @@ import ContainerizationOCI
 import ContainerizationExtras
 import ContainerPersistence
 import TerminalProgress
-
-// MARK: - Boundary value types
-
-/// System health returned by `ping()`.
-struct SystemHealthInfo: Sendable {
-    let apiServerVersion: String
-}
-
-/// A snapshot of image pull progress, folded from the client library's update
-/// events into an app-owned type so views and tests never see TerminalProgress.
-struct ImagePullMetrics: Equatable, Sendable {
-    var bytesDownloaded: Int64 = 0
-    var totalBytes: Int64 = 0
-    var itemsCompleted: Int = 0
-    var totalItems: Int = 0
-    /// What an "item" is for the current phase; the registry client reports "blobs".
-    var itemsName: String = "blobs"
-    /// Phase label, e.g. "Fetching image".
-    var phase: String = ""
-}
-
-/// Everything needed to create and start a container, expressed in app-owned types so
-/// the backend boundary never leaks the underlying client's model types to callers.
-struct ContainerCreateSpec: Sendable {
-    struct Volume: Sendable {
-        let hostPath: String
-        let containerPath: String
-        let readonly: Bool
-    }
-    struct Port: Sendable {
-        let hostPort: UInt16
-        let containerPort: UInt16
-        let transportProtocol: String
-        /// The host interface to publish on. `0.0.0.0` unless something asked for one:
-        /// a port published to `127.0.0.1` is deliberately not on the network, and
-        /// widening it silently would be a security change nobody asked for.
-        var hostAddress: String = "0.0.0.0"
-    }
-
-    let id: String
-    let imageRef: String
-    let environment: [String]
-    let workingDirectory: String
-    let commandOverride: [String]
-    let volumes: [Volume]
-    let publishedPorts: [Port]
-    let dnsDomain: String
-    let networkName: String
-    let autoRemove: Bool
-    /// CPU cores and memory (in bytes) allocated to the container's VM.
-    let cpus: Int
-    let memoryBytes: UInt64
-    /// Key/value labels stamped on the container at creation - e.g. the sandbox marker
-    /// that lets the Sandboxes view recognise a container Orchard wired to a model.
-    var labels: [String: String] = [:]
-}
-
-/// Combine an image's entrypoint and cmd with a user command override into the final
-/// process argument vector. Override replaces cmd; entrypoint is always prefixed.
-func resolveProcessArguments(imageEntrypoint: [String]?, imageCmd: [String]?, override: [String]) -> [String] {
-    var processArgs: [String] = []
-    if let entrypoint = imageEntrypoint, !entrypoint.isEmpty {
-        processArgs = entrypoint
-    }
-    if !override.isEmpty {
-        if processArgs.isEmpty {
-            processArgs = override
-        } else {
-            processArgs.append(contentsOf: override)
-        }
-    } else if let cmd = imageCmd, !cmd.isEmpty, processArgs.isEmpty || (imageEntrypoint != nil) {
-        processArgs.append(contentsOf: cmd)
-    }
-    return processArgs
-}
-
-// MARK: - Machine backing-container filtering
-
-/// A container machine is, under the hood, a container tagged with this label
-/// (`com.apple.container.plugin` = `machine`). The raw list API returns these backing
-/// containers; the `container` CLI hides them client-side and so does Orchard, keeping
-/// them out of the container list where their actions would be meaningless.
-///
-/// The key mirrors upstream `ResourceLabelKeys.plugin`; it is inlined here so the
-/// predicate stays free of package types and unit-testable in isolation.
-enum MachineBackingContainer {
-    static let pluginLabelKey = "com.apple.container.plugin"
-    static let machinePluginValue = "machine"
-
-    /// True when a container's labels mark it as the backing container of a machine.
-    static func isMachine(labels: [String: String]) -> Bool {
-        labels[pluginLabelKey] == machinePluginValue
-    }
-}
-
-// MARK: - Backend protocol
-
-/// The container runtime surface, expressed entirely in app domain models. Mocks
-/// conforming to this need no client-package imports.
-protocol ContainerBackend: Sendable {
-    func listContainers() async throws -> [Container]
-    func stopContainer(id: String) async throws
-    func killContainer(id: String, signal: Int32) async throws
-    func deleteContainer(id: String, force: Bool) async throws
-    func bootstrapAndStart(id: String) async throws
-    func containerLogs(id: String) async throws -> [FileHandle]
-    /// Export the container's filesystem as a tar archive at `destination`,
-    /// replacing any existing file there.
-    func exportContainer(id: String, to destination: URL) async throws
-    /// Trim the free blocks in a running container's root filesystem and volumes so
-    /// the host-side disk images shrink back to what the container actually holds.
-    func cleanContainer(id: String) async throws
-    func stats(id: String) async throws -> Orchard.ContainerStats
-    func createContainer(_ spec: ContainerCreateSpec) async throws
-    func listImages() async throws -> [ContainerImage]
-    func pullImage(reference: String, onProgress: (@Sendable (ImagePullMetrics) -> Void)?) async throws
-    func deleteImage(reference: String) async throws
-    func inspectImage(reference: String) async throws -> ImageInspection
-    func listNetworks() async throws -> [ContainerNetwork]
-    func createNetwork(name: String, subnet: String?, labels: [String: String]) async throws
-    func deleteNetwork(id: String) async throws
-    func ping() async throws -> SystemHealthInfo
-    func diskUsage() async throws -> SystemDiskUsage
-}
-
-// MARK: - Error mapping
-
-func mapContainerError(_ error: Error) -> Error {
-    isContainerServiceUnavailable(error) ? OrchardError.xpcUnavailable : error
-}
-
-/// The apple/container release Orchard's client libraries are built against. Keep in
-/// sync with the container package pin in project.pbxproj when bumping.
-let supportedContainerVersion = "1.4.1"
-
-/// A ping reply the linked client cannot decode means the installed daemon speaks a
-/// different protocol revision than the client libraries Orchard links.
-func isContainerVersionMismatch(_ error: Error) -> Bool {
-    let message = error.localizedDescription.lowercased()
-    return message.contains("failed to decode") && message.contains("health check")
-}
-
-func isContainerServiceUnavailable(_ error: Error) -> Bool {
-    let message = error.localizedDescription.lowercased()
-    return message.contains("connection invalid")
-        || message.contains("connection was invalid")
-        || message.contains("connection interrupted")
-        || message.contains("xpc connection")
-        || message.contains("couldn’t communicate")
-        || message.contains("couldn't communicate")
-        || message.contains("could not communicate")
-        || message.contains("service could not")
-        || message.contains("no such xpc")
-}
+import OrchardDomain
 
 // MARK: - Live implementation
 
 /// `ContainerBackend` backed by the real XPC client, translating client model types to
 /// and from the app's domain models.
-struct LiveContainerBackend: ContainerBackend {
+public struct LiveContainerBackend: ContainerBackend {
+    public init() {}
+
     /// The persisted system configuration (registry, DNS, scheme, …) that image
     /// operations require as of container 1.1.0. Loaded from the same TOML layers the
     /// `container` CLI reads, so pulls resolve identically to the command line.
@@ -172,7 +21,7 @@ struct LiveContainerBackend: ContainerBackend {
         try await ConfigurationLoader.load()
     }
 
-    func listContainers() async throws -> [Container] {
+    public func listContainers() async throws -> [Container] {
         do {
             let snapshots = try await ContainerClient().list()
             return snapshots
@@ -181,13 +30,13 @@ struct LiveContainerBackend: ContainerBackend {
         } catch { throw mapContainerError(error) }
     }
 
-    func stopContainer(id: String) async throws {
+    public func stopContainer(id: String) async throws {
         do {
             try await ContainerClient().stop(id: id)
         } catch { throw mapContainerError(error) }
     }
 
-    func killContainer(id: String, signal: Int32) async throws {
+    public func killContainer(id: String, signal: Int32) async throws {
         // As of container 1.1.0 the client takes the signal as a name/number string;
         // Signal(_:) on the server parses the numeric form.
         do {
@@ -195,7 +44,7 @@ struct LiveContainerBackend: ContainerBackend {
         } catch { throw mapContainerError(error) }
     }
 
-    func cleanContainer(id: String) async throws {
+    public func cleanContainer(id: String) async throws {
         // container 1.4.1 added the route; the daemon trims the container's rootfs and
         // its volumes from inside the workload's mount namespace.
         do {
@@ -203,7 +52,7 @@ struct LiveContainerBackend: ContainerBackend {
         } catch { throw mapContainerError(error) }
     }
 
-    func exportContainer(id: String, to destination: URL) async throws {
+    public func exportContainer(id: String, to destination: URL) async throws {
         // Mirror the CLI: have the daemon write into a scratch directory, then
         // move the archive into place so a failed export never leaves a partial
         // file at the user's chosen path.
@@ -227,7 +76,7 @@ struct LiveContainerBackend: ContainerBackend {
         }
     }
 
-    func deleteContainer(id: String, force: Bool) async throws {
+    public func deleteContainer(id: String, force: Bool) async throws {
         do {
             if force {
                 try await ContainerClient().delete(id: id, force: true)
@@ -237,7 +86,7 @@ struct LiveContainerBackend: ContainerBackend {
         } catch { throw mapContainerError(error) }
     }
 
-    func bootstrapAndStart(id: String) async throws {
+    public func bootstrapAndStart(id: String) async throws {
         do {
             let stdio: [FileHandle?] = [nil, nil, nil]
             let process = try await ContainerClient().bootstrap(id: id, stdio: stdio)
@@ -245,20 +94,20 @@ struct LiveContainerBackend: ContainerBackend {
         } catch { throw mapContainerError(error) }
     }
 
-    func containerLogs(id: String) async throws -> [FileHandle] {
+    public func containerLogs(id: String) async throws -> [FileHandle] {
         do {
             return try await ContainerClient().logs(id: id)
         } catch { throw mapContainerError(error) }
     }
 
-    func stats(id: String) async throws -> Orchard.ContainerStats {
+    public func stats(id: String) async throws -> OrchardDomain.ContainerStats {
         do {
             let stats = try await ContainerClient().stats(id: id)
             return mapContainerStats(stats)
         } catch { throw mapContainerError(error) }
     }
 
-    func createContainer(_ spec: ContainerCreateSpec) async throws {
+    public func createContainer(_ spec: ContainerCreateSpec) async throws {
         do {
             // Translate the spec's app types into the client's configuration types.
             var mounts: [Filesystem] = []
@@ -354,20 +203,26 @@ struct LiveContainerBackend: ContainerBackend {
         } catch { throw mapContainerError(error) }
     }
 
-    func listImages() async throws -> [ContainerImage] {
+    public func listImages() async throws -> [ContainerImage] {
         do {
             let images = try await ClientImage.list()
             return images.map { mapClientImage($0) }
         } catch { throw mapContainerError(error) }
     }
 
-    func pullImage(reference: String, onProgress: (@Sendable (ImagePullMetrics) -> Void)?) async throws {
+    public func pullImage(reference: String, onProgress: (@Sendable (ImagePullMetrics) -> Void)?) async throws {
         do {
             let folder = onProgress.map { PullProgressFolder(onProgress: $0) }
+            let progressUpdate: (@Sendable ([ProgressUpdateEvent]) async -> Void)?
+            if let folder {
+                progressUpdate = { events in folder.handle(events) }
+            } else {
+                progressUpdate = nil
+            }
             _ = try await ClientImage.pull(
                 reference: reference,
                 containerSystemConfig: try await loadContainerSystemConfig(),
-                progressUpdate: folder.map { folder in { events in folder.handle(events) } }
+                progressUpdate: progressUpdate
             )
         } catch { throw mapContainerError(error) }
     }
@@ -412,13 +267,13 @@ struct LiveContainerBackend: ContainerBackend {
         }
     }
 
-    func deleteImage(reference: String) async throws {
+    public func deleteImage(reference: String) async throws {
         do {
             try await ClientImage.delete(reference: reference)
         } catch { throw mapContainerError(error) }
     }
 
-    func inspectImage(reference: String) async throws -> ImageInspection {
+    public func inspectImage(reference: String) async throws -> ImageInspection {
         do {
             // container 1.1.0 removed ClientImage.details(); rebuild the inspection from the
             // OCI index (per-platform manifests) and each platform's config blob.
@@ -462,14 +317,14 @@ struct LiveContainerBackend: ContainerBackend {
         } catch { throw mapContainerError(error) }
     }
 
-    func listNetworks() async throws -> [ContainerNetwork] {
+    public func listNetworks() async throws -> [ContainerNetwork] {
         do {
             let resources = try await NetworkClient().list()
             return resources.map { mapNetworkResource($0) }
         } catch { throw mapContainerError(error) }
     }
 
-    func createNetwork(name: String, subnet: String?, labels: [String: String]) async throws {
+    public func createNetwork(name: String, subnet: String?, labels: [String: String]) async throws {
         do {
             let ipv4Subnet = try subnet.flatMap { $0.isEmpty ? nil : try CIDRv4($0) }
             let config = try NetworkConfiguration(
@@ -483,20 +338,20 @@ struct LiveContainerBackend: ContainerBackend {
         } catch { throw mapContainerError(error) }
     }
 
-    func deleteNetwork(id: String) async throws {
+    public func deleteNetwork(id: String) async throws {
         do {
             try await NetworkClient().delete(id: id)
         } catch { throw mapContainerError(error) }
     }
 
-    func ping() async throws -> SystemHealthInfo {
+    public func ping() async throws -> SystemHealthInfo {
         do {
             let health = try await ClientHealthCheck.ping()
             return SystemHealthInfo(apiServerVersion: health.apiServerVersion)
         } catch { throw mapContainerError(error) }
     }
 
-    func diskUsage() async throws -> SystemDiskUsage {
+    public func diskUsage() async throws -> SystemDiskUsage {
         do {
             let stats = try await ClientDiskUsage.get()
             return mapDiskUsageStats(stats)

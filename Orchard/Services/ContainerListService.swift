@@ -1,3 +1,5 @@
+import OrchardApplication
+import OrchardDomain
 import Foundation
 import SwiftUI
 
@@ -24,6 +26,7 @@ final class ContainerListService: ObservableObject {
     @Published private(set) var cleaningContainers: Set<String> = []
 
     private let backend: ContainerBackend
+    private let operations: ContainerOperations
     private let alertCenter: AlertCenter
 
     /// Refresh builder state after a lifecycle change. Set by the owner.
@@ -40,11 +43,10 @@ final class ContainerListService: ObservableObject {
     // Prevent multiple simultaneous operations on the same container.
     private var containerOperationLocks: Set<String> = []
     private let lockQueue = DispatchQueue(label: "containerOperationLocks", attributes: .concurrent)
-    // Configuration snapshots for recovery.
-    private var containerSnapshots: [String: Container] = [:]
 
     init(backend: ContainerBackend, alertCenter: AlertCenter, pollInterval: TimeInterval = 0.5) {
         self.backend = backend
+        self.operations = ContainerOperations(backend: backend)
         self.alertCenter = alertCenter
         self.pollInterval = pollInterval
     }
@@ -79,7 +81,7 @@ final class ContainerListService: ObservableObject {
         }
 
         do {
-            let newContainers = try await backend.listContainers()
+            let newContainers = try await operations.list()
 
             if !areContainersEqual(self.containers, newContainers) {
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -87,10 +89,6 @@ final class ContainerListService: ObservableObject {
                 }
             }
             self.isLoading = false
-            for container in newContainers {
-                self.containerSnapshots[container.configuration.id] = container
-            }
-
             for container in newContainers {
                 Log.containers.debug("Container: \(container.configuration.id), Status: \(container.status)")
             }
@@ -107,7 +105,7 @@ final class ContainerListService: ObservableObject {
         self.alertCenter.dismiss()
 
         do {
-            try await backend.killContainer(id: id, signal: 9)
+            try await operations.forceStop(id)
             Log.containers.debug("Container \(id) force stop (SIGKILL) sent")
             Task { await self.reloadBuilders() }
             Task { await self.refreshUntilContainerStopped(id) }
@@ -123,7 +121,7 @@ final class ContainerListService: ObservableObject {
         self.alertCenter.dismiss()
 
         do {
-            try await backend.stopContainer(id: id)
+            try await operations.stop(id)
             Log.containers.debug("Container \(id) stop command sent successfully")
             Task { await self.reloadBuilders() }
             Task { await self.refreshUntilContainerStopped(id) }
@@ -142,7 +140,9 @@ final class ContainerListService: ObservableObject {
         }
 
         defer {
-            _ = lockQueue.sync(flags: .barrier) { containerOperationLocks.remove(id) }
+            if shouldProceed {
+                _ = lockQueue.sync(flags: .barrier) { containerOperationLocks.remove(id) }
+            }
         }
 
         guard shouldProceed else {
@@ -155,69 +155,25 @@ final class ContainerListService: ObservableObject {
 
     private func startContainerWithRetry(_ id: String, maxRetries: Int, retryDelay: TimeInterval) async {
         loadingContainers.insert(id)
-        self.alertCenter.dismiss()
-
-        for attempt in 1...maxRetries {
-            do {
-                try await backend.bootstrapAndStart(id: id)
-
-                Log.containers.debug("Container \(id) start command sent successfully (attempt \(attempt))")
-                self.recoveryFailedContainerIDs.remove(id)
-
-                Task { await self.reloadBuilders() }
-                Task { await self.refreshUntilContainerStarted(id) }
-                return
-            } catch {
-                let errorMsg = error.localizedDescription
-                Log.containers.error("Container \(id) failed to start (attempt \(attempt)): \(errorMsg)")
-
-                let classified = OrchardError.classifyStartError(error, id: id)
-                let containerNotFound = classified == .containerNotFound(id: id)
-                let isTransitionError = classified == .containerInTransition(id: id)
-
-                if containerNotFound {
-                    Log.containers.debug("Container \(id) was auto-removed by runtime, attempting automatic recovery...")
-
-                    if await recoverContainer(id) {
-                        // recoverContainer → runContainer → createContainer already bootstraps
-                        // and starts the container, so this is a completed start - do NOT loop
-                        // back into another bootstrapAndStart on the now-running container.
-                        Log.containers.debug("Container \(id) successfully recovered and started")
-                        self.recoveryFailedContainerIDs.remove(id)
-                        Task { await self.reloadBuilders() }
-                        Task { await self.refreshUntilContainerStarted(id) }
-                        return
-                    } else {
-                        Log.containers.error("Container \(id) recovery failed")
-                        self.recoveryFailedContainerIDs.insert(id)
-                        self.alertCenter.error("Container was automatically removed and could not be recovered. Original configuration may be lost.")
-                        loadingContainers.remove(id)
-                        Task { await self.loadContainers() }
-                        return
-                    }
-                } else if isTransitionError {
-                    if attempt == maxRetries {
-                        self.alertCenter.error("Container failed to start after \(maxRetries) attempts. The container may be corrupted.")
-                        loadingContainers.remove(id)
-                        Task { await self.loadContainers() }
-                        return
-                    } else {
-                        self.alertCenter.error("Container is in transition state, retrying...")
-                    }
-                } else {
-                    self.alertCenter.error("Failed to start container: \(errorMsg)")
-                    loadingContainers.remove(id)
-                    Task { await self.loadContainers() }
-                    return
-                }
+        alertCenter.dismiss()
+        do {
+            try await operations.start(id, maxRetries: maxRetries, retryDelay: retryDelay)
+            recoveryFailedContainerIDs.remove(id)
+            Task { await self.reloadBuilders() }
+            Task { await self.refreshUntilContainerStarted(id) }
+        } catch {
+            if let failure = error as? OrchardError, failure == .recoveryFailed(id: id) {
+                recoveryFailedContainerIDs.insert(id)
             }
-
-            if attempt < maxRetries {
-                try? await Task.sleep(nanoseconds: UInt64(retryDelay * 1_000_000_000))
+            if let failure = error as? OrchardError, failure == .containerInTransition(id: id) {
+                alertCenter.error("Container failed to start after \(maxRetries) attempts. The container may be corrupted.")
+            } else {
+                alertCenter.error("Failed to start container: \(error.localizedDescription)")
             }
+            loadingContainers.remove(id)
+            Log.containers.error("Error starting container: \(error.localizedDescription)")
+            Task { await self.loadContainers() }
         }
-
-        loadingContainers.remove(id)
     }
 
     private func refreshUntilContainerStopped(_ id: String) async {
@@ -284,7 +240,7 @@ final class ContainerListService: ObservableObject {
         self.alertCenter.dismiss()
 
         do {
-            try await backend.deleteContainer(id: id, force: false)
+            try await operations.remove(id)
             Log.containers.debug("Container \(id) remove command sent successfully")
             Task { await self.reloadBuilders() }
             self.containers.removeAll { $0.configuration.id == id }
@@ -385,131 +341,15 @@ final class ContainerListService: ObservableObject {
         }
     }
 
-    // Recovery recreates an auto-removed container from its snapshot. It preserves every
-    // field the create path (ContainerRunConfig → ContainerCreateSpec → createContainer)
-    // supports: env, ports, volumes (incl. readonly), working directory, network, DNS.
-    // Labels, resources (cpus/memory), and hostname are NOT preserved - no field exists for
-    // them anywhere in the create path (a normal `run` drops them too); adding them means
-    // extending the spec and the XPC create call. Command override is intentionally not
-    // reconstructed: the snapshot stores the fully-resolved argv (image entrypoint already
-    // applied), so re-feeding it as an override would double-apply the entrypoint.
-    private func recoverContainer(_ id: String) async -> Bool {
-        guard let snapshot = containerSnapshots[id] else {
-            Log.containers.debug("No snapshot available for container \(id)")
-            return false
-        }
-
-        Log.containers.debug("Attempting to recover container \(id) from snapshot...")
-
-        let config = snapshot.configuration
-
-        var envVars: [ContainerRunConfig.EnvironmentVariable] = []
-        for env in config.initProcess.environment {
-            let parts = env.split(separator: "=", maxSplits: 1)
-            if parts.count == 2 {
-                envVars.append(.init(key: String(parts[0]), value: String(parts[1])))
-            }
-        }
-
-        var portMappings: [ContainerRunConfig.PortMapping] = []
-        for port in config.publishedPorts {
-            portMappings.append(.init(
-                hostPort: "\(port.hostPort)",
-                containerPort: "\(port.containerPort)",
-                transportProtocol: port.transportProtocol
-            ))
-        }
-
-        var volumeMappings: [ContainerRunConfig.VolumeMapping] = []
-        for mount in config.mounts {
-            volumeMappings.append(.init(
-                hostPath: mount.source,
-                containerPath: mount.destination,
-                readonly: mount.options.contains("ro")
-            ))
-        }
-
-        let runConfig = ContainerRunConfig(
-            name: id,
-            image: config.image.reference,
-            detached: true,
-            environmentVariables: envVars,
-            portMappings: portMappings,
-            volumeMappings: volumeMappings,
-            workingDirectory: config.initProcess.workingDirectory,
-            dnsDomain: config.dns.domain ?? "",
-            network: snapshot.networks.first?.network ?? "",
-            // Recovery recreates the container; without these it would strip
-            // every label (sandbox markers included).
-            labels: config.labels,
-            cpus: config.resources.cpus,
-            // Exact bytes, not a GB round-trip: recovery must never resize a container.
-            memoryBytes: UInt64(clamping: config.resources.memoryInBytes)
-        )
-
-        let started = await runContainer(config: runConfig)
-        if started {
-            Log.containers.debug("Container \(id) recovered successfully")
-            return true
-        } else {
-            Log.containers.error("Container recovery failed")
-            return false
-        }
-    }
-
     @discardableResult
     func runContainer(config: ContainerRunConfig) async -> Bool {
         do {
-            let id = config.name.isEmpty ? UUID().uuidString.lowercased().prefix(12).description : config.name
-
-            var envStrings: [String] = []
-            for envVar in config.environmentVariables where !envVar.key.isEmpty {
-                envStrings.append("\(envVar.key)=\(envVar.value)")
-            }
-
-            var volumes: [ContainerCreateSpec.Volume] = []
-            for vol in config.volumeMappings where !vol.hostPath.isEmpty && !vol.containerPath.isEmpty {
-                volumes.append(.init(hostPath: vol.hostPath, containerPath: vol.containerPath, readonly: vol.readonly))
-            }
-
-            var ports: [ContainerCreateSpec.Port] = []
-            for pm in config.portMappings {
-                if let hp = UInt16(pm.hostPort), let cp = UInt16(pm.containerPort) {
-                    ports.append(.init(hostPort: hp, containerPort: cp, transportProtocol: pm.transportProtocol))
-                }
-            }
-
-            var commandArgs: [String] = []
-            if !config.commandOverride.isEmpty {
-                // Quote-aware split so `sh -c "echo hi"` stays three arguments (#42).
-                commandArgs = splitCommandLine(config.commandOverride)
-            }
-
-            let spec = ContainerCreateSpec(
-                id: id,
-                imageRef: config.image,
-                environment: envStrings,
-                workingDirectory: config.workingDirectory,
-                commandOverride: commandArgs,
-                volumes: volumes,
-                publishedPorts: ports,
-                dnsDomain: config.dnsDomain,
-                networkName: config.network,
-                autoRemove: config.removeAfterStop,
-                // Clamped here so no caller can trap the backend's UInt64 math with a
-                // negative or zero allocation. Upper bounds are deliberately not
-                // enforced: the runtime accepts overcommitted VMs.
-                cpus: max(1, config.cpus),
-                memoryBytes: max(1_048_576, config.memoryBytes),
-                labels: config.effectiveLabels
-            )
-            try await backend.createContainer(spec)
-
+            let id = try await operations.create(config)
             recoveryFailedContainerIDs.remove(id)
             Task { await self.loadContainers() }
             return true
         } catch {
-            self.alertCenter.error("Failed to run container: \(error.localizedDescription)")
+            alertCenter.error("Failed to run container: \(error.localizedDescription)")
             return false
         }
     }

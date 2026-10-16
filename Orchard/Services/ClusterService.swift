@@ -1,3 +1,5 @@
+import OrchardRuntime
+import OrchardDomain
 import Foundation
 
 // MARK: - Cluster model

@@ -1,3 +1,4 @@
+import OrchardDomain
 import Foundation
 
 /// Where an entry sits in the palette. Sections are the display grouping and the

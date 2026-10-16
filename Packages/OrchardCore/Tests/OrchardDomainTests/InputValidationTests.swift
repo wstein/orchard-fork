@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import Orchard
+import OrchardDomain
 
 // Pure validators extracted from the Add DNS / Add Network forms.
 

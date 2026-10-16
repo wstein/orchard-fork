@@ -1,3 +1,5 @@
+import OrchardRuntime
+import OrchardDomain
 import Foundation
 import Testing
 @testable import Orchard

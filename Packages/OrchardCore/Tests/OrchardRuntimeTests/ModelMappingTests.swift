@@ -1,9 +1,10 @@
+import OrchardDomain
 import Testing
 import Foundation
 import ContainerResource
 import ContainerizationOCI
 import ContainerAPIClient
-@testable import Orchard
+@testable import OrchardRuntime
 
 // Pure mapping from the upstream `container` framework types to Orchard's own models.
 // No mocks, no async — construct an input value, assert the mapped output.
@@ -80,7 +81,7 @@ func platformMapping() {
 
     #expect(mapped.os == "linux")
     #expect(mapped.architecture == "arm64")
-    // NB: mapPlatform hardcodes variant to nil even though Orchard.Platform has the field —
+    // NB: mapPlatform hardcodes variant to nil even though OrchardDomain.Platform has the field —
     // see the KNOWN-ISSUE on mapPlatform. Not asserted here (a constant can't be falsified).
 }
 

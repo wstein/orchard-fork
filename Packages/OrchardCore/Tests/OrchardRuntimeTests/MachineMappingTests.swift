@@ -1,10 +1,11 @@
+import OrchardDomain
 import Testing
 import Foundation
 import MachineAPIClient
 import ContainerResource
 import ContainerPersistence
 import ContainerizationOCI
-@testable import Orchard
+@testable import OrchardRuntime
 
 // Pure mapping from the machine client's `MachineSnapshot` to Orchard's `Machine`. Inputs are
 // constructed to mirror the M0 spike captures: a running alpine machine (rw home, 4cpu/4G)
